@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+
+        <!-- Upload Card -->
+        <div class="card shadow-lg border-0 overflow-hidden mb-5">
+            <div class="card-header bg-gradient text-white py-4 text-center">
+                <h2 class="mb-0"><i class="fas fa-microscope"></i> Anomaly Detection System</h2>
+            </div>
+            <div class="card-body p-5">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-light">Upload Image for Analysis</label>
+                        <input type="file" class="form-control form-control-lg" name="file" accept="image/*" required
+                            id="fileInput">
+                        <small class="text-muted">Supported: JPG, PNG, JPEG (Best results with 224×224
+                            medical/industrial images)</small>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-upload btn-lg fw-semibold" id="submitBtn">
+                            <i class="fas fa-upload me-2"></i> Upload & Run Detection
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        {% if result %}
+        <div class="card result-card shadow-lg border-0 overflow-hidden">
+            <div class="card-header text-center py-3 bg-{{ result.alert_class }}">
+                <h4 class="mb-0 text-white fw-bold">{{ result.message }}</h4>
+            </div>
+
+            <div class="card-body p-5">
+                <div class="row text-center">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Reconstruction Error (L1 Loss)</h6>
+                        <h1 class="display-4 fw-bold text-warning mb-0">{{ result.error }}</h1>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Anomaly Likelihood</h6>
+                        <div class="progress mt-3" style="height: 18px; border-radius: 50px;">
+                            <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated"
+                                style="width: {{ result.percentage }}%;">
+                                <strong>{{ result.percentage }}%</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-5">
+
+                <h5 class="text-center mb-4 text-light">
+                    <i class="fas fa-image"></i> Original vs Reconstructed Image
+                </h5>
+
+                <div class="image-container mx-auto" style="max-width: 900px;">
+                    <img src="{{ url_for('static', filename='imgs/result.png') }}" class="img-fluid rounded-4 shadow"
+                        alt="Detection Result">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}
