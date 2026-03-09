@@ -1,0 +1,10 @@
+flask==3.0.3
+torch
+torchvision
+pillow
+matplotlib
+numpy
+werkzeug
+tqdm
+pandas
+scikit-learn
