@@ -27,7 +27,7 @@ os.makedirs(STATIC_IMGS, exist_ok=True)
 
 # Device & Config
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-ANOMALY_THRESHOLD = 0.05   # Change this if needed after testing
+ANOMALY_THRESHOLD = 0.0766   # Change this if needed after testing
 
 # ====================== LOAD MODEL ======================
 transform = transforms.Compose([
@@ -123,33 +123,43 @@ def logout():
 def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
-    
-    result = None
+
+    results = []
+
     if request.method == 'POST':
-        if 'file' not in request.files or request.files['file'].filename == '':
-            flash('Please select an image file!', 'warning')
-            return render_template('dashboard.html', result=result)
-        
-        file = request.files['file']
-        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(filepath)
-        
-        try:
-            error, is_anomaly, percentage = detect_anomaly(filepath)
-            result = {
-                'error': round(error, 4),
-                'percentage': round(percentage, 1),
-                'message': "🚨 ANOMALY DETECTED!" if is_anomaly else "✅ NORMAL IMAGE",
-                'alert_class': "danger" if is_anomaly else "success"
-            }
-            flash('Analysis completed successfully!', 'success')
-        except Exception as e:
-            flash(f'Error processing image: {str(e)}', 'danger')
-        finally:
-            if os.path.exists(filepath):
-                os.remove(filepath)
-    
-    return render_template('dashboard.html', result=result)
+
+        files = request.files.getlist('files')
+
+        if not files or files[0].filename == '':
+            flash('Please select at least one image!', 'warning')
+            return render_template('dashboard.html', results=results)
+
+        for file in files:
+
+            filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+            file.save(filepath)
+
+            try:
+                error, is_anomaly, percentage = detect_anomaly(filepath)
+
+                results.append({
+                    'filename': file.filename,
+                    'error': round(error, 4),
+                    'percentage': round(percentage, 1),
+                    'message': "🚨 ANOMALY DETECTED!" if is_anomaly else "✅ NORMAL IMAGE",
+                    'alert_class': "danger" if is_anomaly else "success"
+                })
+
+            except Exception as e:
+                flash(f'Error processing {file.filename}: {str(e)}', 'danger')
+
+            finally:
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+
+        flash('Analysis completed successfully!', 'success')
+
+    return render_template('dashboard.html', results=results)
 
 # ====================== START APP ======================
 if __name__ == '__main__':

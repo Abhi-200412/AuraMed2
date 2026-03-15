@@ -2,26 +2,35 @@
 {% block content %}
 
 <div class="row justify-content-center">
-    <div class="col-lg-9">
+    <div class="col-lg-9 fade-in-up">
 
         <!-- Upload Card -->
         <div class="card shadow-lg border-0 overflow-hidden mb-5">
-            <div class="card-header bg-gradient text-white py-4 text-center">
-                <h2 class="mb-0"><i class="fas fa-microscope"></i> Anomaly Detection System</h2>
+            <div class="card-header text-center py-4 border-bottom-0 pt-5">
+                <div class="d-inline-block rounded-circle p-3 mb-3"
+                    style="background: rgba(0, 242, 254, 0.1); box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);">
+                    <i class="fas fa-microscope fa-2x" style="color: var(--primary);"></i>
+                </div>
+                <h2 class="fw-bold mb-1">Anomaly Detection System</h2>
+                <p class="text-muted mb-0">Upload medical or industrial images for AI analysis</p>
             </div>
-            <div class="card-body p-5">
+            <div class="card-body p-4 p-md-5 pt-2">
                 <form method="POST" enctype="multipart/form-data" id="uploadForm">
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-light">Upload Image for Analysis</label>
-                        <input type="file" class="form-control form-control-lg" name="file" accept="image/*" required
-                            id="fileInput">
-                        <small class="text-muted">Supported: JPG, PNG, JPEG (Best results with 224×224
-                            medical/industrial images)</small>
+                    <div class="mb-5 text-center delay-1 fade-in-up">
+                        <label class="form-label fw-bold text-light mb-3 fs-5">Select Images to Analyze</label>
+                        <div class="position-relative">
+                            <input type="file" class="form-control" name="files" accept="image/*" multiple required
+                                id="fileInput">
+                            <i class="fas fa-cloud-upload-alt position-absolute"
+                                style="top: 25%; left: 50%; transform: translateX(-50%); font-size: 3rem; color: rgba(255,255,255,0.1); pointer-events: none; z-index: 0;"></i>
+                        </div>
+                        <small class="text-muted d-block mt-3"><i class="fas fa-info-circle me-1"></i> Supported
+                            formats: JPG, PNG, JPEG. Best results with 224×224 resolution.</small>
                     </div>
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-upload btn-lg fw-semibold" id="submitBtn">
-                            <i class="fas fa-upload me-2"></i> Upload & Run Detection
+                    <div class="d-grid delay-2 fade-in-up">
+                        <button type="submit" class="btn btn-upload btn-lg" id="submitBtn">
+                            <i class="fas fa-bolt me-2"></i> Run Detection Analysis
                         </button>
                     </div>
                 </form>
@@ -29,40 +38,55 @@
         </div>
 
         <!-- Result Section -->
-        {% if result %}
-        <div class="card result-card shadow-lg border-0 overflow-hidden">
-            <div class="card-header text-center py-3 bg-{{ result.alert_class }}">
-                <h4 class="mb-0 text-white fw-bold">{{ result.message }}</h4>
+        {% if results %}
+        <div class="row mt-5 pt-3 border-top" style="border-color: var(--card-border) !important;">
+            <div class="col-12 mb-4 text-center delay-2 fade-in-up">
+                <h3 class="fw-bold"><i class="fas fa-poll me-2 text-info"></i>Analysis Results</h3>
             </div>
 
-            <div class="card-body p-5">
-                <div class="row text-center">
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-2">Reconstruction Error (L1 Loss)</h6>
-                        <h1 class="display-4 fw-bold text-warning mb-0">{{ result.error }}</h1>
+            {% for result in results %}
+            <!-- Set class based on alert level -->
+            {% set result_status_class = 'danger' if result.alert_class == 'danger' or result.alert_class == 'warning'
+            else 'success' %}
+
+            <div class="col-md-6 mb-4 delay-3 fade-in-up">
+                <div class="card result-card {{ result_status_class }} shadow-lg border-0 overflow-hidden h-100">
+
+                    <div class="card-header text-center py-3 border-bottom-0 mt-2">
+                        <span
+                            class="badge rounded-pill bg-{{ result.alert_class }} bg-opacity-25 text-{{ result.alert_class }} mb-2 px-3 py-2 border border-{{ result.alert_class }}">
+                            <i
+                                class="fas {% if result_status_class == 'danger' %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %} me-1"></i>
+                            {{ result.message }}
+                        </span>
+                        <h4 class="mb-0 text-white fw-bold text-truncate" title="{{ result.filename }}">{{
+                            result.filename }}</h4>
                     </div>
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-2">Anomaly Likelihood</h6>
-                        <div class="progress mt-3" style="height: 18px; border-radius: 50px;">
-                            <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated"
-                                style="width: {{ result.percentage }}%;">
-                                <strong>{{ result.percentage }}%</strong>
+
+                    <div class="card-body p-4 pt-1">
+                        <div class="row text-center mt-3">
+                            <div class="col-6 border-end" style="border-color: var(--card-border) !important;">
+                                <h6 class="text-muted mb-1 fs-7 text-uppercase tracking-wider">Recon. Error</h6>
+                                <h3 class="fw-bold mb-0"
+                                    style="color: {% if result_status_class == 'danger' %}#ff4b4b{% else %}#00E676{% endif %};">
+                                    {{ result.error }}</h3>
+                            </div>
+
+                            <div class="col-6">
+                                <h6 class="text-muted mb-1 fs-7 text-uppercase tracking-wider">Anomaly Rate</h6>
+                                <h3 class="fw-bold mb-2 text-light">{{ result.percentage }}%</h3>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-{{ result.alert_class }}"
+                                        style="width: {{ result.percentage }}%;">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <hr class="my-5">
-
-                <h5 class="text-center mb-4 text-light">
-                    <i class="fas fa-image"></i> Original vs Reconstructed Image
-                </h5>
-
-                <div class="image-container mx-auto" style="max-width: 900px;">
-                    <img src="{{ url_for('static', filename='imgs/result.png') }}" class="img-fluid rounded-4 shadow"
-                        alt="Detection Result">
-                </div>
             </div>
+            {% endfor %}
+
         </div>
         {% endif %}
 

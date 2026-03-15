@@ -1,4 +1,4 @@
-// static/js/script.js - Full Updated Version (Modern + Smooth)
+// static/js/script.js - Premium UI/UX Interactions
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -11,17 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingOverlay = document.createElement('div');
     loadingOverlay.className = 'loading-spinner';
     loadingOverlay.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border text-info mb-4" 
-                 style="width: 5.5rem; height: 5.5rem; border-width: 8px;" 
-                 role="status"></div>
-            <h3 class="text-light fw-bold mb-2">Analyzing Image...</h3>
-            <p class="text-info mb-0">Running SBCAE Model • Please wait</p>
+        <div class="text-center fade-in-up">
+            <div class="custom-loader mx-auto"></div>
+            <h3 class="fw-bold mb-2 text-white">Analyzing Image...</h3>
+            <p class="mb-0" style="color: var(--primary);">Running Deep Learning Model • Please wait</p>
             
             <div class="mt-4">
-                <div class="progress" style="height: 6px; max-width: 280px; margin: 0 auto;">
-                    <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" 
-                         style="width: 100%;"></div>
+                <div class="progress mx-auto" style="height: 6px; max-width: 250px; background: rgba(255,255,255,0.1);">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         style="width: 100%; background: var(--primary);"></div>
                 </div>
             </div>
         </div>
@@ -37,19 +35,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Show beautiful loading
+            // Show beautiful loading overlay
             loadingOverlay.classList.add('show');
 
-            // Disable button with animation
+            // Disable button
             if (submitBtn) {
                 submitBtn.disabled = true;
                 const originalHTML = submitBtn.innerHTML;
                 submitBtn.innerHTML = `
                     <span class="spinner-border spinner-border-sm me-3" role="status"></span>
-                    Processing Image...
+                    Processing...
                 `;
 
-                // Safety timeout (in case something goes wrong)
+                // Safety timeout (in case of network failure)
                 setTimeout(() => {
                     if (loadingOverlay.classList.contains('show')) {
                         loadingOverlay.classList.remove('show');
@@ -61,16 +59,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ====================== FILE INPUT PREVIEW ======================
+    // ====================== FILE INPUT DRAG & DROP ======================
     if (fileInput) {
+        const fileContainer = fileInput.parentElement;
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileInput.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileInput.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileInput.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            fileInput.style.borderColor = 'var(--primary)';
+            fileInput.style.background = 'rgba(0, 242, 254, 0.1)';
+        }
+
+        function unhighlight(e) {
+            fileInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            fileInput.style.background = 'rgba(255, 255, 255, 0.03)';
+        }
+
         fileInput.addEventListener('change', function () {
-            if (this.files && this.files[0]) {
-                const fileName = this.files[0].name;
-                if (fileName.length > 40) {
-                    this.title = fileName;
+            if (this.files && this.files.length > 0) {
+                let fileNames = Array.from(this.files).map(f => f.name).join(', ');
+                if (fileNames.length > 40) {
+                    this.title = fileNames;
                 } else {
                     this.title = '';
                 }
+                flashMessage(`Selected ${this.files.length} file(s) for analysis.`, 'info');
             }
         });
     }
@@ -78,16 +106,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // ====================== FLASH MESSAGES ======================
     function flashMessage(message, type = 'info') {
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow-sm position-fixed top-0 start-50 translate-middle-x mt-4`;
-        alertDiv.style.zIndex = '9999';
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow-lg position-fixed top-0 start-50 translate-middle-x mt-4`;
+        alertDiv.style.zIndex = '1050';
         alertDiv.style.minWidth = '320px';
         alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <i class="fas ${type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i> ${message}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
         `;
         document.body.appendChild(alertDiv);
 
-        // Auto dismiss after 5 seconds
         setTimeout(() => {
             if (alertDiv.parentNode) {
                 const bsAlert = new bootstrap.Alert(alertDiv);
@@ -104,25 +131,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, 6500);
 
-    // ====================== KEYBOARD SHORTCUT ======================
+    // ====================== KEYBOARD SHORTCUTS ======================
     document.addEventListener('keydown', (e) => {
         if (e.key === '/' && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
             e.preventDefault();
             fileInput?.focus();
         }
 
-        // Press ESC to hide loading (emergency)
         if (e.key === "Escape" && loadingOverlay.classList.contains('show')) {
             loadingOverlay.classList.remove('show');
         }
     });
 
-    // ====================== CLEANUP ON PAGE UNLOAD ======================
     window.addEventListener('beforeunload', () => {
         if (loadingOverlay.classList.contains('show')) {
             loadingOverlay.classList.remove('show');
         }
     });
 
-    console.log('✅ Enhanced JS loaded successfully');
+    // Subtly animate result cards sequentially
+    const cards = document.querySelectorAll('.result-card');
+    if (cards.length > 0) {
+        cards.forEach((card, index) => {
+            card.style.animationDelay = `${(index + 3) * 0.15}s`;
+        });
+    }
 });
