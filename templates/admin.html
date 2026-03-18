@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<style>
+    .stat-card {
+        background: rgba(30, 34, 45, 0.4);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 242, 254, 0.1);
+        border-color: rgba(0, 242, 254, 0.2);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .table-dark-glass {
+        background: rgba(30, 34, 45, 0.4);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: white;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .table-dark-glass thead th {
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: #a0aec0;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+        padding: 1rem;
+    }
+
+    .table-dark-glass tbody td {
+        background: transparent;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        padding: 1rem;
+        vertical-align: middle;
+    }
+
+    .table-dark-glass tbody tr:hover td {
+        background: rgba(0, 242, 254, 0.05);
+    }
+
+    .badge-anomaly {
+        background: rgba(255, 0, 127, 0.2);
+        color: #ff007f;
+        border: 1px solid rgba(255, 0, 127, 0.4);
+        padding: 0.5rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .badge-normal {
+        background: rgba(0, 242, 254, 0.2);
+        color: #00f2fe;
+        border: 1px solid rgba(0, 242, 254, 0.4);
+        padding: 0.5rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-glass {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .form-glass:focus {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--primary);
+        color: white;
+        box-shadow: 0 0 0 0.25rem rgba(0, 242, 254, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row fade-in-up mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-end">
+        <div>
+            <h2 class="fw-bold mb-1 text-white"><i class="fas fa-shield-alt text-primary me-2"></i>Admin Dashboard</h2>
+            <p class="text-white-50 mb-0">System overview, AI tuning, and global management</p>
+        </div>
+        <div>
+            <a href="{{ url_for('export_csv') }}" class="btn btn-outline-light rounded-pill px-4"
+                style="border-color: rgba(255,255,255,0.2);">
+                <i class="fas fa-file-csv me-2" style="color: #00f2fe;"></i> Export Global History
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row fade-in-up mb-5">
+    <!-- Stat 1 -->
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(0, 242, 254, 0.1); color: #00f2fe;">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="fw-bold text-white mb-0">{{ stats.total_users }}</h3>
+            <p class="text-white-50 mb-0">Registered Users</p>
+        </div>
+    </div>
+    <!-- Stat 2 -->
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(162, 102, 246, 0.1); color: #a266f6;">
+                <i class="fas fa-file-medical-alt"></i>
+            </div>
+            <h3 class="fw-bold text-white mb-0">{{ stats.total_scans }}</h3>
+            <p class="text-white-50 mb-0">Total Global Scans</p>
+        </div>
+    </div>
+    <!-- Stat 3 -->
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(255, 0, 127, 0.1); color: #ff007f;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="fw-bold text-white mb-0">{{ stats.total_anomalies }}</h3>
+            <p class="text-white-50 mb-0">Anomalies Detected</p>
+        </div>
+    </div>
+    <!-- AI Tuning Config -->
+    <div class="col-md-3">
+        <div class="stat-card d-flex flex-column justify-content-between">
+            <div>
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-brain me-2" style="color: #00f2fe;"></i>
+                    <span class="text-white fw-medium">AI Threshold</span>
+                </div>
+                <p class="text-white-50 mb-3" style="font-size: 0.8rem; line-height: 1.2;">
+                    Lowering this increases sensitivity (more anomalies flagged). Default: 0.0766.
+                </p>
+            </div>
+            <form action="{{ url_for('update_threshold') }}" method="POST" class="d-flex gap-2">
+                <input type="number" step="0.0001" name="threshold" class="form-control form-control-sm form-glass"
+                    value="{{ stats.current_threshold }}" required>
+                <button type="submit" class="btn btn-sm btn-primary text-nowrap">Save</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row fade-in-up" style="animation-delay: 0.1s;">
+    <!-- USER MANAGEMENT CONFIG -->
+    <div class="col-lg-4 mb-4 mb-lg-0">
+        <h4 class="fw-bold text-white mb-3">User Management</h4>
+        <div class="table-responsive rounded-3" style="max-height: 600px; overflow-y: auto;">
+            <table class="table table-dark-glass mb-0">
+                <thead style="position: sticky; top: 0; z-index: 1;">
+                    <tr>
+                        <th>Username</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in all_users %}
+                    <tr>
+                        <td class="text-white fw-medium">
+                            {{ u.username }}
+                            {% if u.is_admin %}
+                            <i class="fas fa-shield-alt ms-1 text-primary" title="Administrator"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                {% if not u.is_admin %}
+                                <form action="{{ url_for('promote_user', uid=u.id) }}" method="POST">
+                                    <button class="btn btn-sm btn-outline-info rounded-pill" title="Promote to Admin">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form action="{{ url_for('delete_user', uid=u.id) }}" method="POST"
+                                    onsubmit="return confirm('Are you sure you want to permanently delete this user and ALL their history?');">
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill" title="Delete User">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- GLOBAL SCAN HISTORY -->
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold text-white mb-0">Global Scan History</h4>
+
+            <!-- Filter Form -->
+            <form action="{{ url_for('admin_panel') }}" method="GET" class="d-flex align-items-center gap-2">
+                <div class="form-check form-switch me-2 mb-0">
+                    <input class="form-check-input" type="checkbox" name="anomaly_only" id="filterAnomaly" value="1" {%
+                        if filters.anomaly_only=='1' %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label text-white-50" for="filterAnomaly"
+                        style="font-size: 0.85rem; padding-top: 2px;">Anomalies Only</label>
+                </div>
+                <select name="user_id" class="form-select form-select-sm form-glass" style="max-width: 150px;"
+                    onchange="this.form.submit()">
+                    <option value="">All Users</option>
+                    {% for u in all_users %}
+                    <option value="{{ u.id }}" {% if filters.user_id==u.id|string %}selected{% endif %}>{{ u.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if filters.user_id or filters.anomaly_only %}
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-sm btn-outline-light"><i
+                        class="fas fa-times"></i></a>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if all_history|length == 0 %}
+        <div class="text-center p-5"
+            style="background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1);">
+            <i class="fas fa-database fa-3x mb-3" style="color: rgba(255,255,255,0.2);"></i>
+            <h4 class="text-white fw-bold">No results found</h4>
+        </div>
+        {% else %}
+        <div class="table-responsive rounded-3" style="max-height: 600px; overflow-y: auto;">
+            <table class="table table-dark-glass mb-0">
+                <thead style="position: sticky; top: 0; z-index: 1;">
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>User</th>
+                        <th>File Analyzed</th>
+                        <th>Score</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in all_history %}
+                    <tr>
+                        <td class="text-white-50" style="font-size: 0.8rem;">{{ item.timestamp.split('.')[0] }}</td>
+                        <td>
+                            <span
+                                class="badge bg-secondary bg-opacity-25 text-white border border-secondary px-2 py-1 rounded-pill fw-normal">
+                                <i class="fas fa-user-circle me-1" style="color: var(--primary);"></i> {{ item.username
+                                }}
+                            </span>
+                        </td>
+                        <td class="text-white fw-medium" style="font-size: 0.9rem;" title="{{ item.filename }}">
+                            {{ item.filename[:20] + '...' if item.filename|length > 20 else item.filename }}
+                        </td>
+                        <td style="font-family: monospace; font-size: 0.9rem;">{{ item.error_score }}</td>
+                        <td>
+                            {% if item.is_anomaly %}
+                            <span class="badge-anomaly py-1 px-2" style="font-size: 0.75rem;">
+                                <i class="fas fa-times-circle"></i> ANOMALY
+                            </span>
+                            {% else %}
+                            <span class="badge-normal py-1 px-2" style="font-size: 0.75rem;">
+                                <i class="fas fa-check-circle"></i> NORMAL
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

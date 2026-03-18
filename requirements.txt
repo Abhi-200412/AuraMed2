@@ -1,10 +1,21 @@
-flask==3.0.3
+# Web Framework & Security
+Flask==3.0.3
+Werkzeug>=3.0.0
+
+# Deep Learning & Image Processing
 torch
 torchvision
 pillow
-matplotlib
 numpy
-werkzeug
+
+# Visualization
+matplotlib
+
+# Training & Evaluation Utilities
 tqdm
 pandas
 scikit-learn
+
+# Note: The recent Admin Panel additions (Database, User Auth, CSV Export)
+# utilize Python's built-in standard libraries (sqlite3, csv, io) 
+# and do not require any additional pip installations.

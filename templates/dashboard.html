@@ -64,6 +64,7 @@
                     </div>
 
                     <div class="card-body p-4 pt-1">
+                        {% if session.is_admin %}
                         <div class="row text-center mt-3">
                             <div class="col-6 border-end" style="border-color: var(--card-border) !important;">
                                 <h6 class="text-muted mb-1 fs-7 text-uppercase tracking-wider">Recon. Error</h6>
@@ -82,6 +83,21 @@
                                 </div>
                             </div>
                         </div>
+                        {% else %}
+                        <div class="text-center mt-3 mt-md-4 px-2">
+                            {% if result_status_class == 'danger' %}
+                            <p class="text-light fs-5 mb-0" style="font-weight: 500;">Potential abnormalities detected
+                                in this scan.</p>
+                            <p class="text-white-50 mt-2 mb-2" style="font-size: 0.95rem;">Please consult with a medical
+                                specialist or radiologist for a professional diagnosis.</p>
+                            {% else %}
+                            <p class="text-light fs-5 mb-0" style="font-weight: 500;">No obvious abnormalities detected.
+                            </p>
+                            <p class="text-white-50 mt-2 mb-2" style="font-size: 0.95rem;">This scan appears to be
+                                completely normal based on the AI analysis.</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
