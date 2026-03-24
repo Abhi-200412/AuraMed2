@@ -118,7 +118,7 @@
 
 <div class="row fade-in-up mb-5">
     <!-- Stat 1 -->
-    <div class="col-md-3 mb-3 mb-md-0">
+    <div class="col-md-4 mb-3 mb-md-0">
         <div class="stat-card">
             <div class="stat-icon" style="background: rgba(0, 242, 254, 0.1); color: #00f2fe;">
                 <i class="fas fa-users"></i>
@@ -128,7 +128,7 @@
         </div>
     </div>
     <!-- Stat 2 -->
-    <div class="col-md-3 mb-3 mb-md-0">
+    <div class="col-md-4 mb-3 mb-md-0">
         <div class="stat-card">
             <div class="stat-icon" style="background: rgba(162, 102, 246, 0.1); color: #a266f6;">
                 <i class="fas fa-file-medical-alt"></i>
@@ -138,7 +138,7 @@
         </div>
     </div>
     <!-- Stat 3 -->
-    <div class="col-md-3 mb-3 mb-md-0">
+    <div class="col-md-4 mb-3 mb-md-0">
         <div class="stat-card">
             <div class="stat-icon" style="background: rgba(255, 0, 127, 0.1); color: #ff007f;">
                 <i class="fas fa-exclamation-triangle"></i>
@@ -147,28 +147,46 @@
             <p class="text-white-50 mb-0">Anomalies Detected</p>
         </div>
     </div>
-    <!-- AI Tuning Config -->
-    <div class="col-md-3">
-        <div class="stat-card d-flex flex-column justify-content-between">
-            <div>
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-brain me-2" style="color: #00f2fe;"></i>
-                    <span class="text-white fw-medium">AI Threshold</span>
-                </div>
-                <p class="text-white-50 mb-3" style="font-size: 0.8rem; line-height: 1.2;">
-                    Lowering this increases sensitivity (more anomalies flagged). Default: 0.0766.
-                </p>
+</div>
+
+<!-- Admin Analytics Charts -->
+<div class="row fade-in-up mb-4" style="animation-delay: 0.1s;">
+    <!-- Chart 1 -->
+    <div class="col-lg-4 mb-4 mb-lg-0">
+        <div class="card p-3 h-100 border-0"
+            style="background: rgba(20, 22, 30, 0.6); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;"><i
+                    class="fas fa-chart-line me-2 text-info"></i>Anomalies Over Time</h5>
+            <div style="position: relative; height: 100%; min-height: 250px;">
+                <canvas id="timeChart"></canvas>
             </div>
-            <form action="{{ url_for('update_threshold') }}" method="POST" class="d-flex gap-2">
-                <input type="number" step="0.0001" name="threshold" class="form-control form-control-sm form-glass"
-                    value="{{ stats.current_threshold }}" required>
-                <button type="submit" class="btn btn-sm btn-primary text-nowrap">Save</button>
-            </form>
+        </div>
+    </div>
+    <!-- Chart 2 -->
+    <div class="col-lg-4 mb-4 mb-lg-0">
+        <div class="card p-3 h-100 border-0"
+            style="background: rgba(20, 22, 30, 0.6); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;"><i class="fas fa-users me-2"
+                    style="color: #00E676;"></i>User Activity</h5>
+            <div style="position: relative; height: 100%; min-height: 250px;">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Chart 3 -->
+    <div class="col-lg-4">
+        <div class="card p-3 h-100 border-0"
+            style="background: rgba(20, 22, 30, 0.6); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;"><i
+                    class="fas fa-chart-pie me-2 text-warning"></i>Error Distribution</h5>
+            <div style="position: relative; height: 100%; min-height: 250px;">
+                <canvas id="distChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="row fade-in-up" style="animation-delay: 0.1s;">
+<div class="row fade-in-up" style="animation-delay: 0.2s;">
     <!-- USER MANAGEMENT CONFIG -->
     <div class="col-lg-4 mb-4 mb-lg-0">
         <h4 class="fw-bold text-white mb-3">User Management</h4>
@@ -255,7 +273,6 @@
                         <th>Date & Time</th>
                         <th>User</th>
                         <th>File Analyzed</th>
-                        <th>Score</th>
                         <th>Result</th>
                     </tr>
                 </thead>
@@ -273,7 +290,6 @@
                         <td class="text-white fw-medium" style="font-size: 0.9rem;" title="{{ item.filename }}">
                             {{ item.filename[:20] + '...' if item.filename|length > 20 else item.filename }}
                         </td>
-                        <td style="font-family: monospace; font-size: 0.9rem;">{{ item.error_score }}</td>
                         <td>
                             {% if item.is_anomaly %}
                             <span class="badge-anomaly py-1 px-2" style="font-size: 0.75rem;">
@@ -293,4 +309,125 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Chart.js and Dashboard Init -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const rawData = {{ chart_data | tojson | safe
+    }};
+
+    // Setup Chart defaults dynamically based on the current theme
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+
+    Chart.defaults.color = currentTheme === 'light' ? '#212529' : '#a0aab2';
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.plugins.tooltip.backgroundColor = currentTheme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(9, 10, 15, 0.9)';
+    Chart.defaults.plugins.tooltip.titleColor = currentTheme === 'light' ? '#000' : '#fff';
+    Chart.defaults.plugins.tooltip.bodyColor = currentTheme === 'light' ? '#212529' : '#fff';
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+    const gridOptions = {
+        color: currentTheme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)',
+        borderColor: currentTheme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)'
+    };
+
+    // 1. Anomalies Over Time (Line Chart)
+    new Chart(document.getElementById('timeChart'), {
+        type: 'line',
+        data: {
+            labels: rawData.dates,
+            datasets: [
+                {
+                    label: 'Total Scans',
+                    data: rawData.total_scans_time,
+                    borderColor: '#00f2fe',
+                    backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Anomalies',
+                    data: rawData.anomalies_time,
+                    borderColor: '#ff0844',
+                    backgroundColor: 'rgba(255, 8, 68, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: gridOptions },
+                x: { grid: gridOptions }
+            },
+            plugins: {
+                legend: { position: 'top', labels: { boxWidth: 12 } }
+            }
+        }
+    });
+
+    // 2. User Activity (Bar Chart)
+    new Chart(document.getElementById('activityChart'), {
+        type: 'bar',
+        data: {
+            labels: rawData.active_users,
+            datasets: [{
+                label: 'Uploads',
+                data: rawData.user_scan_counts,
+                backgroundColor: 'rgba(0, 230, 118, 0.8)',
+                borderRadius: 4,
+                barPercentage: 0.5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: gridOptions },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    // 3. Error Distribution (Doughnut Chart)
+    new Chart(document.getElementById('distChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Safe (<0.02)', 'Low Risk (0.02-0.04)', 'Medium (0.04-0.06)', 'High Risk (0.06-0.08)', 'Critical (>0.08)'],
+            datasets: [{
+                data: rawData.error_dist,
+                backgroundColor: [
+                    '#0bfb75', // green
+                    '#4facfe', // blue
+                    '#f6d365', // yellow
+                    '#fd7e14', // orange
+                    '#ff0844'  // red
+                ],
+                borderWidth: 2,
+                borderColor: '#14161e' // card background color match
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { boxWidth: 10, font: { size: 10 } }
+                }
+            }
+        }
+    });
+    });
+</script>
 {% endblock %}

@@ -10,6 +10,7 @@ numpy
 
 # Visualization
 matplotlib
+seaborn
 
 # Training & Evaluation Utilities
 tqdm

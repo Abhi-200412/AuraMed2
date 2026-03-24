@@ -30,7 +30,7 @@ os.makedirs(STATIC_IMGS, exist_ok=True)
 
 # Device & Config
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-ANOMALY_THRESHOLD = 0.0766   # Change this if needed after testing
+ANOMALY_THRESHOLD = 0.0408   # Change this if needed after testing
 
 # ====================== LOAD MODEL ======================
 transform = transforms.Compose([
@@ -55,33 +55,52 @@ except Exception as e:
 def detect_anomaly(image_path, threshold):
     img = Image.open(image_path).convert('RGB')
     tensor = transform(img).unsqueeze(0).to(DEVICE)
-    
+
     with torch.no_grad():
         recon, _ = model(tensor)
-    
+
     error = F.l1_loss(recon, tensor).item()
-    is_anomaly = error > threshold
+
+    # ---------------------------
+    # BINARY DECISION SYSTEM
+    # ---------------------------
+
+    if error <= threshold:
+        status = "normal"
+        message = "✅ NORMAL IMAGE"
+        alert_class = "success"
+        is_anomaly = False
+    else:
+        status = "anomaly"
+        message = "🚨 ANOMALY DETECTED!"
+        alert_class = "danger"
+        is_anomaly = True
+
     percentage = min((error / threshold) * 100, 100)
-    
-    # Plot Original vs Reconstructed
+
+    # ---------------------------
+    # PLOT
+    # ---------------------------
+
     fig, axes = plt.subplots(1, 2, figsize=(12, 6), facecolor='#1a1a2e')
+
     orig = np.clip((tensor.squeeze(0).cpu().numpy().transpose(1, 2, 0) * 0.5) + 0.5, 0, 1)
     rec  = np.clip((recon.squeeze(0).cpu().numpy().transpose(1, 2, 0) * 0.5) + 0.5, 0, 1)
-    
+
     axes[0].imshow(orig)
     axes[0].set_title('Original Image', color='white', fontsize=16)
     axes[0].axis('off')
-    
+
     axes[1].imshow(rec)
     axes[1].set_title(f'Reconstructed\n(Error: {error:.4f})', color='white', fontsize=16)
     axes[1].axis('off')
-    
+
     plt.tight_layout()
     plot_path = os.path.join(STATIC_IMGS, 'result.png')
     plt.savefig(plot_path, dpi=300, facecolor='#1a1a2e')
     plt.close()
-    
-    return error, is_anomaly, percentage
+
+    return error, percentage, status, message, alert_class, is_anomaly
 
 import sqlite3
 import csv
@@ -120,7 +139,7 @@ def init_db():
             value TEXT NOT NULL
         )
     ''')
-    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('ANOMALY_THRESHOLD', '0.0766')")
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('ANOMALY_THRESHOLD', '0.0408')")
     
     # Check for default admin
     c.execute('SELECT id FROM users WHERE username = ?', ('admin',))
@@ -218,6 +237,10 @@ def dashboard():
         if not files or files[0].filename == '':
             flash('Please select at least one image!', 'warning')
             return render_template('dashboard.html', results=results)
+            
+        if len(files) > 10:
+            flash('You can only upload a maximum of 10 images at once.', 'danger')
+            return render_template('dashboard.html', results=results)
 
         # Fetch dynamic threshold
         conn = sqlite3.connect(DB_FILE)
@@ -233,7 +256,7 @@ def dashboard():
             file.save(filepath)
 
             try:
-                error, is_anomaly, percentage = detect_anomaly(filepath, current_threshold)
+                error, percentage, status, message, alert_class, is_anomaly = detect_anomaly(filepath, current_threshold)
 
                 # Save to history
                 try:
@@ -252,8 +275,8 @@ def dashboard():
                     'filename': file.filename,
                     'error': round(error, 4),
                     'percentage': round(percentage, 1),
-                    'message': "🚨 ANOMALY DETECTED!" if is_anomaly else "✅ NORMAL IMAGE",
-                    'alert_class': "danger" if is_anomaly else "success"
+                    'message': message,
+                    'alert_class': alert_class
                 })
 
             except Exception as e:
@@ -269,9 +292,9 @@ def dashboard():
 
 @app.route('/history')
 def history():
-    if 'user' not in session or not session.get('is_admin'):
-        flash('Access denied. History view is restricted to administrators.', 'danger')
-        return redirect(url_for('dashboard'))
+    if 'user' not in session:
+        flash('Please log in to view your history.', 'danger')
+        return redirect(url_for('login'))
         
     # Ensure user_id is in session
     user_id = session.get('user_id')
@@ -354,7 +377,55 @@ def admin_panel():
     
     c.execute(query, params)
     rows = c.fetchall()
+    # 1. Anomalies Over Time
+    c.execute('''
+        SELECT date(timestamp), COUNT(*), SUM(is_anomaly)
+        FROM history
+        GROUP BY date(timestamp)
+        ORDER BY date(timestamp) DESC
+        LIMIT 10
+    ''')
+    time_data = c.fetchall()
+    dates = [row[0] for row in reversed(time_data)]
+    total_scans_time = [row[1] for row in reversed(time_data)]
+    anomalies_time = [row[2] for row in reversed(time_data)]
+    
+    # 2. User Activity (Top 5 active users)
+    c.execute('''
+        SELECT u.username, COUNT(h.id) as scan_count
+        FROM users u
+        LEFT JOIN history h ON u.id = h.user_id
+        GROUP BY u.username
+        ORDER BY scan_count DESC
+        LIMIT 5
+    ''')
+    activity_data = c.fetchall()
+    active_users = [row[0] for row in activity_data]
+    user_scan_counts = [row[1] for row in activity_data]
+    
+    # 3. Error Distribution
+    c.execute('''
+        SELECT 
+            SUM(CASE WHEN error_score < 0.02 THEN 1 ELSE 0 END),
+            SUM(CASE WHEN error_score >= 0.02 AND error_score < 0.04 THEN 1 ELSE 0 END),
+            SUM(CASE WHEN error_score >= 0.04 AND error_score < 0.06 THEN 1 ELSE 0 END),
+            SUM(CASE WHEN error_score >= 0.06 AND error_score < 0.08 THEN 1 ELSE 0 END),
+            SUM(CASE WHEN error_score >= 0.08 THEN 1 ELSE 0 END)
+        FROM history
+    ''')
+    dist_row = c.fetchone()
+    error_dist = [int(d) if d else 0 for d in dist_row] if dist_row else [0,0,0,0,0]
+
     conn.close()
+    
+    chart_data = {
+        'dates': dates,
+        'total_scans_time': total_scans_time,
+        'anomalies_time': anomalies_time,
+        'active_users': active_users,
+        'user_scan_counts': user_scan_counts,
+        'error_dist': error_dist
+    }
     
     all_history = []
     for r in rows:
@@ -370,27 +441,12 @@ def admin_panel():
     stats = {
         'total_users': total_users,
         'total_scans': total_scans,
-        'total_anomalies': total_anomalies,
-        'current_threshold': current_threshold
+        'total_anomalies': total_anomalies
     }
         
-    return render_template('admin.html', stats=stats, all_history=all_history, all_users=all_users, filters={'user_id': filter_user_id, 'anomaly_only': filter_anomaly})
+    return render_template('admin.html', stats=stats, all_history=all_history, all_users=all_users, filters={'user_id': filter_user_id, 'anomaly_only': filter_anomaly}, chart_data=chart_data)
 
-@app.route('/admin/settings/threshold', methods=['POST'])
-def update_threshold():
-    if 'user' not in session or not session.get('is_admin'):
-        return redirect(url_for('dashboard'))
-    try:
-        new_val = float(request.form.get('threshold', 0))
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute("UPDATE settings SET value=? WHERE key='ANOMALY_THRESHOLD'", (str(new_val),))
-        conn.commit()
-        conn.close()
-        flash('AI Threshold updated successfully.', 'success')
-    except ValueError:
-        flash('Invalid threshold value.', 'danger')
-    return redirect(url_for('admin_panel'))
+
 
 @app.route('/admin/export/csv')
 def export_csv():

@@ -13,6 +13,100 @@
     --text-muted: #a0aab2;
 }
 
+[data-theme="light"] {
+    --primary: #0056b3;
+    --secondary: #007bff;
+    --accent: #ff007f;
+    --dark-bg: #f8f9fa;
+    --card-bg: rgba(255, 255, 255, 0.85);
+    --card-border: rgba(0, 0, 0, 0.15);
+    --text-main: #212529;
+    --text-muted: #6c757d;
+}
+
+[data-theme="light"] .bg-animation {
+    background-color: #f1f3f5;
+    background-image:
+        radial-gradient(at 0% 0%, rgba(0, 123, 255, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(255, 0, 127, 0.05) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(162, 102, 246, 0.08) 0px, transparent 50%);
+}
+
+[data-theme="light"] .glass-navbar {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .navbar-brand {
+    background: linear-gradient(90deg, #0056b3, #000);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+[data-theme="light"] .text-white,
+[data-theme="light"] .text-light {
+    color: var(--text-main) !important;
+}
+
+[data-theme="light"] .text-white-50,
+[data-theme="light"] .text-muted {
+    color: var(--text-muted) !important;
+}
+
+[data-theme="light"] .form-control,
+[data-theme="light"] .input-group-text,
+[data-theme="light"] input[type=file] {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    color: var(--text-main);
+}
+
+[data-theme="light"] .form-control::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] input[type=file]::file-selector-button {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-main);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .btn-upload,
+[data-theme="light"] .btn-primary {
+    color: #fff;
+}
+
+[data-theme="light"] .btn-primary:hover,
+[data-theme="light"] .btn-upload:hover {
+    color: #fff;
+}
+
+[data-theme="light"] .progress {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .btn-outline-light {
+    color: var(--text-main) !important;
+    border-color: var(--text-muted) !important;
+}
+
+[data-theme="light"] .btn-outline-light:hover {
+    background-color: var(--text-muted) !important;
+    color: #fff !important;
+}
+
+[data-theme="light"] .table th,
+[data-theme="light"] .table td {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .form-select {
+    background-color: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    color: var(--text-main);
+}
+
 body {
     background-color: var(--dark-bg);
     font-family: 'Outfit', sans-serif;
@@ -33,7 +127,11 @@ body {
     height: 100vh;
     z-index: -1;
     overflow: hidden;
-    background: radial-gradient(circle at center, #11131c 0%, #090a0f 100%);
+    background-color: #090a0f;
+    background-image:
+        radial-gradient(at 0% 0%, rgba(0, 242, 254, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(255, 0, 127, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(162, 102, 246, 0.08) 0px, transparent 50%);
 }
 
 .blob {
@@ -100,6 +198,7 @@ body {
     letter-spacing: -0.5px;
     background: linear-gradient(90deg, var(--primary), #ffffff);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -116,6 +215,7 @@ body {
     -webkit-backdrop-filter: blur(16px);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+    color: var(--text-main);
 }
 
 .card:hover {

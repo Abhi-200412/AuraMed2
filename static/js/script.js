@@ -90,15 +90,85 @@ document.addEventListener('DOMContentLoaded', () => {
             fileInput.style.background = 'rgba(255, 255, 255, 0.03)';
         }
 
+        const maxFiles = 10;
+        let dt = new DataTransfer();
+
+        function renderPreviews() {
+            const previewContainer = document.getElementById('imagePreviewGrid');
+            if (!previewContainer) return;
+            previewContainer.innerHTML = '';
+
+            Array.from(fileInput.files).forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const col = document.createElement('div');
+                    col.className = 'col-auto position-relative fade-in-up';
+                    col.style.animationDelay = `${index * 0.05}s`;
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-thumbnail border-secondary';
+                    img.style.height = '100px';
+                    img.style.width = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '12px';
+                    img.style.background = 'rgba(255,255,255,0.05)';
+                    img.title = file.name;
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    removeBtn.className = 'btn btn-sm btn-danger rounded-circle position-absolute';
+                    removeBtn.style.top = '-5px';
+                    removeBtn.style.right = '-5px';
+                    removeBtn.style.width = '24px';
+                    removeBtn.style.height = '24px';
+                    removeBtn.style.padding = '0';
+                    removeBtn.style.display = 'flex';
+                    removeBtn.style.alignItems = 'center';
+                    removeBtn.style.justifyContent = 'center';
+                    removeBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.5)';
+                    removeBtn.type = 'button';
+
+                    removeBtn.onclick = function (ev) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        // Rebuild FileList without this file
+                        const newDt = new DataTransfer();
+                        Array.from(fileInput.files).forEach((f, i) => {
+                            if (i !== index) newDt.items.add(f);
+                        });
+                        fileInput.files = newDt.files;
+                        dt = newDt;
+                        renderPreviews();
+                    };
+
+                    col.appendChild(img);
+                    col.appendChild(removeBtn);
+                    previewContainer.appendChild(col);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
         fileInput.addEventListener('change', function () {
             if (this.files && this.files.length > 0) {
-                let fileNames = Array.from(this.files).map(f => f.name).join(', ');
-                if (fileNames.length > 40) {
-                    this.title = fileNames;
-                } else {
-                    this.title = '';
+                if (this.files.length > maxFiles) {
+                    flashMessage(`Too many files! You selected ${this.files.length} images but the maximum allowed is ${maxFiles}.`, 'warning');
+                    this.value = '';
+                    dt = new DataTransfer();
+                    renderPreviews();
+                    return;
                 }
-                flashMessage(`Selected ${this.files.length} file(s) for analysis.`, 'info');
+
+                dt = new DataTransfer();
+                Array.from(this.files).forEach(f => dt.items.add(f));
+                fileInput.files = dt.files;
+
+                flashMessage(`Great! ${this.files.length} file(s) loaded up for analysis.`, 'info');
+                renderPreviews();
+            } else {
+                dt = new DataTransfer();
+                renderPreviews();
             }
         });
     }

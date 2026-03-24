@@ -95,8 +95,9 @@
                     <tr>
                         <th>Date & Time</th>
                         <th>Filename</th>
+                        {% if session.is_admin %}
                         <th>Error Score</th>
-                        <th>Confidence %</th>
+                        {% endif %}
                         <th>Result</th>
                     </tr>
                 </thead>
@@ -105,18 +106,9 @@
                     <tr>
                         <td class="text-white-50"><i class="far fa-clock me-2"></i>{{ item.timestamp }}</td>
                         <td class="text-white fw-medium">{{ item.filename }}</td>
+                        {% if session.is_admin %}
                         <td style="font-family: monospace; font-size: 1.1rem;">{{ item.error_score }}</td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <span style="min-width: 45px; display: inline-block;">{{ item.percentage }}%</span>
-                                <div class="progress flex-grow-1"
-                                    style="height: 6px; background: rgba(255,255,255,0.1);">
-                                    <div class="progress-bar"
-                                        style="width: {{ item.percentage }}%; background: {{ 'var(--danger-gradient)' if item.is_anomaly else 'var(--primary-gradient)' }};">
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
+                        {% endif %}
                         <td>
                             {% if item.is_anomaly %}
                             <span class="badge-anomaly">

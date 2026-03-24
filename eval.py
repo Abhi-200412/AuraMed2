@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 import torch.nn as nn
 import numpy as np
@@ -6,15 +7,21 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from sklearn.metrics import roc_auc_score, confusion_matrix, accuracy_score
-from model import SBCAE
+from sklearn.metrics import (
+    roc_auc_score, confusion_matrix,
+    f1_score, roc_curve
+)
+import matplotlib.pyplot as plt
+import seaborn as sns
 from tqdm import tqdm
+
+from model import SBCAE
 
 # ---------------------------
 # CONFIG
 # ---------------------------
 
-DATA_DIR = r"D:\Project\TEST\TEST-01\data\test"
+DATA_DIR = "data/test"
 MODEL_PATH = "final_model.pth"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -23,35 +30,30 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # ---------------------------
 
 transform = transforms.Compose([
-    transforms.Resize((224,224)),
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize([0.5]*3,[0.5]*3)
+    transforms.Normalize([0.5]*3, [0.5]*3)
 ])
 
 # ---------------------------
 # DATASET
 # ---------------------------
 
-class SimpleDataset(Dataset):
-
+class ImageDataset(Dataset):
     def __init__(self, folder, label):
-
         self.paths = [
-            os.path.join(folder,f)
+            os.path.join(folder, f)
             for f in os.listdir(folder)
-            if f.lower().endswith((".png",".jpg",".jpeg"))
+            if f.lower().endswith(('.png', '.jpg', '.jpeg'))
         ]
-
         self.label = label
 
     def __len__(self):
         return len(self.paths)
 
     def __getitem__(self, idx):
-
         img = Image.open(self.paths[idx]).convert("RGB")
         img = transform(img)
-
         return img, self.label, os.path.basename(self.paths[idx])
 
 # ---------------------------
@@ -59,15 +61,13 @@ class SimpleDataset(Dataset):
 # ---------------------------
 
 normal_loader = DataLoader(
-    SimpleDataset(f"{DATA_DIR}/normal",0),
-    batch_size=1,
-    shuffle=False
+    ImageDataset(f"{DATA_DIR}/normal", 0),
+    batch_size=1, shuffle=False
 )
 
 anomaly_loader = DataLoader(
-    SimpleDataset(f"{DATA_DIR}/anomaly",1),
-    batch_size=1,
-    shuffle=False
+    ImageDataset(f"{DATA_DIR}/anomaly", 1),
+    batch_size=1, shuffle=False
 )
 
 # ---------------------------
@@ -75,45 +75,34 @@ anomaly_loader = DataLoader(
 # ---------------------------
 
 model = SBCAE(latent_dim=256).to(DEVICE)
-model.load_state_dict(torch.load(MODEL_PATH,map_location=DEVICE))
+model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
-loss_fn = nn.L1Loss(reduction="mean")
+loss_fn = nn.L1Loss()
 
 # ---------------------------
 # COMPUTE SCORES
 # ---------------------------
 
-normal_scores = []
-anomaly_scores = []
-
-names = []
+scores = []
 labels = []
+names = []
 
-def compute_scores(loader, score_list):
-
+def process(loader):
     with torch.no_grad():
-
         for imgs, label, name in tqdm(loader):
-
             imgs = imgs.to(DEVICE)
+            recon, _ = model(imgs)
+            score = loss_fn(recon, imgs).item()
 
-            recon,_ = model(imgs)
-
-            score = loss_fn(recon,imgs).item()
-
-            score_list.append(score)
-
-            names.append(name[0])
+            scores.append(score)
             labels.append(label.item())
+            names.append(name[0])
 
-compute_scores(normal_loader, normal_scores)
-compute_scores(anomaly_loader, anomaly_scores)
+process(normal_loader)
+process(anomaly_loader)
 
-normal_scores = np.array(normal_scores)
-anomaly_scores = np.array(anomaly_scores)
-
-scores = np.concatenate([normal_scores, anomaly_scores])
+scores = np.array(scores)
 labels = np.array(labels)
 
 # ---------------------------
@@ -123,61 +112,139 @@ labels = np.array(labels)
 auroc = roc_auc_score(labels, scores)
 
 # ---------------------------
-# CALIBRATED THRESHOLD
+# THRESHOLD OPTIMIZATION
 # ---------------------------
 
-mean_normal = normal_scores.mean()
-std_normal = normal_scores.std()
+thresholds = np.linspace(scores.min(), scores.max(), 300)
 
-threshold = mean_normal + 3 * std_normal
+best_f1 = 0
+best_f1_thresh = 0
 
-print("\nCalibration Statistics")
-print("Normal mean:", mean_normal)
-print("Normal std :", std_normal)
-print("Calibrated Threshold:", threshold)
+best_youden = 0
+best_youden_thresh = 0
+
+best_bal_acc = 0
+best_bal_thresh = 0
+
+for t in thresholds:
+
+    preds = (scores >= t).astype(int)
+
+    # F1
+    f1 = f1_score(labels, preds)
+    if f1 > best_f1:
+        best_f1 = f1
+        best_f1_thresh = t
+
+    # Confusion matrix
+    tn, fp, fn, tp = confusion_matrix(labels, preds).ravel()
+
+    tpr = tp / (tp + fn + 1e-8)
+    fpr = fp / (fp + tn + 1e-8)
+
+    # Youden Index
+    youden = tpr - fpr
+    if youden > best_youden:
+        best_youden = youden
+        best_youden_thresh = t
+
+    # Balanced Accuracy
+    bal_acc = (tpr + (1 - fpr)) / 2
+    if bal_acc > best_bal_acc:
+        best_bal_acc = bal_acc
+        best_bal_thresh = t
+
+# FINAL SELECTION
+FINAL_THRESHOLD = best_bal_thresh
+
+print("\n🔍 Threshold Optimization Results:")
+print(f"F1 Threshold       : {best_f1_thresh:.4f}")
+print(f"Youden Threshold   : {best_youden_thresh:.4f}")
+print(f"Balanced Threshold : {best_bal_thresh:.4f}")
+print(f"\n✅ FINAL THRESHOLD: {FINAL_THRESHOLD:.4f}")
 
 # ---------------------------
-# PREDICTIONS
+# FINAL PREDICTIONS
 # ---------------------------
 
-predictions = (scores >= threshold).astype(int)
+preds = (scores >= FINAL_THRESHOLD).astype(int)
 
 # ---------------------------
 # METRICS
 # ---------------------------
 
-cm = confusion_matrix(labels,predictions)
+cm = confusion_matrix(labels, preds)
+tn, fp, fn, tp = cm.ravel()
 
-tn,fp,fn,tp = cm.ravel()
+accuracy = (tp + tn) / (tp + tn + fp + fn)
+precision = tp / (tp + fp + 1e-8)
+recall = tp / (tp + fn + 1e-8)
+specificity = tn / (tn + fp + 1e-8)
 
-accuracy = accuracy_score(labels,predictions)
+print("\n📊 FINAL METRICS")
+print("AUROC      :", round(auroc, 4))
+print("Accuracy   :", round(accuracy, 4))
+print("Precision  :", round(precision, 4))
+print("Recall     :", round(recall, 4))
+print("Specificity:", round(specificity, 4))
 
-precision = tp/(tp+fp+1e-8)
-recall = tp/(tp+fn+1e-8)
-specificity = tn/(tn+fp+1e-8)
+print("\nConfusion Matrix:")
+print(cm)
 
 # ---------------------------
-# SAVE RESULTS
+# SAVE THRESHOLD
 # ---------------------------
 
-results = pd.DataFrame({
-    "image_id": names,
-    "anomaly_score": scores,
+with open("threshold.json", "w") as f:
+    json.dump({"threshold": float(FINAL_THRESHOLD)}, f)
+
+# ---------------------------
+# SAVE CSV
+# ---------------------------
+
+df = pd.DataFrame({
+    "image": names,
+    "score": scores,
     "true_label": labels,
-    "predicted_label": predictions
+    "predicted_label": preds
 })
 
-results.to_csv("final_results.csv",index=False)
+df.to_csv("final_results.csv", index=False)
 
 # ---------------------------
-# PRINT RESULTS
+# PLOTS
 # ---------------------------
 
-print("\nEvaluation Complete")
-print("AUROC:",round(auroc,4))
-print("Threshold:",threshold)
-print("Accuracy:",round(accuracy,4))
-print("Precision:",round(precision,4))
-print("Recall:",round(recall,4))
-print("Specificity:",round(specificity,4))
-print("Results saved to final_results.csv")
+# ROC Curve
+fpr, tpr, _ = roc_curve(labels, scores)
+plt.figure()
+plt.plot(fpr, tpr)
+plt.title("ROC Curve")
+plt.xlabel("FPR")
+plt.ylabel("TPR")
+plt.savefig("roc_curve.png")
+plt.close()
+
+# Score Distribution
+plt.figure()
+plt.hist(scores[labels == 0], bins=50, alpha=0.5, label="Normal")
+plt.hist(scores[labels == 1], bins=50, alpha=0.5, label="Anomaly")
+plt.axvline(FINAL_THRESHOLD, linestyle="--", label="Threshold")
+plt.legend()
+plt.title("Score Distribution")
+plt.savefig("score_distribution.png")
+plt.close()
+
+# Confusion Matrix
+plt.figure()
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.title("Confusion Matrix")
+plt.savefig("confusion_matrix.png")
+plt.close()
+
+print("\n📁 Files Saved:")
+print("- final_results.csv")
+print("- threshold.json")
+print("- roc_curve.png")
+print("- score_distribution.png")
+print("- confusion_matrix.png")
