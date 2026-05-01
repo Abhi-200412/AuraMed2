@@ -157,7 +157,9 @@ init_db()
 # ====================== ROUTES ======================
 @app.route('/')
 def index():
-    return redirect(url_for('login'))
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('landing.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -510,5 +512,5 @@ def delete_user(uid):
 # ====================== START APP ======================
 if __name__ == '__main__':
     print("\n🚀 AuraMed Anomaly Detection App Started!")
-    print("   Go to: http://127.0.0.1:5000/register")
+    print("   Go to: http://127.0.0.1:5000")
     app.run(debug=True)
