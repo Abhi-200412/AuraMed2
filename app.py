@@ -405,18 +405,7 @@ def admin_panel():
     active_users = [row[0] for row in activity_data]
     user_scan_counts = [row[1] for row in activity_data]
     
-    # 3. Error Distribution
-    c.execute('''
-        SELECT 
-            SUM(CASE WHEN error_score < 0.02 THEN 1 ELSE 0 END),
-            SUM(CASE WHEN error_score >= 0.02 AND error_score < 0.04 THEN 1 ELSE 0 END),
-            SUM(CASE WHEN error_score >= 0.04 AND error_score < 0.06 THEN 1 ELSE 0 END),
-            SUM(CASE WHEN error_score >= 0.06 AND error_score < 0.08 THEN 1 ELSE 0 END),
-            SUM(CASE WHEN error_score >= 0.08 THEN 1 ELSE 0 END)
-        FROM history
-    ''')
-    dist_row = c.fetchone()
-    error_dist = [int(d) if d else 0 for d in dist_row] if dist_row else [0,0,0,0,0]
+
 
     conn.close()
     
@@ -425,8 +414,7 @@ def admin_panel():
         'total_scans_time': total_scans_time,
         'anomalies_time': anomalies_time,
         'active_users': active_users,
-        'user_scan_counts': user_scan_counts,
-        'error_dist': error_dist
+        'user_scan_counts': user_scan_counts
     }
     
     all_history = []

@@ -152,7 +152,7 @@
 <!-- Admin Analytics Charts -->
 <div class="row fade-in-up mb-4" style="animation-delay: 0.1s;">
     <!-- Chart 1 -->
-    <div class="col-lg-4 mb-4 mb-lg-0">
+    <div class="col-lg-6 mb-4 mb-lg-0">
         <div class="card p-3 h-100 border-0"
             style="background: rgba(20, 22, 30, 0.6); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
             <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;"><i
@@ -163,7 +163,7 @@
         </div>
     </div>
     <!-- Chart 2 -->
-    <div class="col-lg-4 mb-4 mb-lg-0">
+    <div class="col-lg-6 mb-4 mb-lg-0">
         <div class="card p-3 h-100 border-0"
             style="background: rgba(20, 22, 30, 0.6); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
             <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;"><i class="fas fa-users me-2"
@@ -173,17 +173,7 @@
             </div>
         </div>
     </div>
-    <!-- Chart 3 -->
-    <div class="col-lg-4">
-        <div class="card p-3 h-100 border-0"
-            style="background: rgba(20, 22, 30, 0.6); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-            <h5 class="fw-bold text-white mb-3" style="font-size: 1.1rem;"><i
-                    class="fas fa-chart-pie me-2 text-warning"></i>Error Distribution</h5>
-            <div style="position: relative; height: 100%; min-height: 250px;">
-                <canvas id="distChart"></canvas>
-            </div>
-        </div>
-    </div>
+
 </div>
 
 <div class="row fade-in-up" style="animation-delay: 0.2s;">
@@ -398,36 +388,7 @@
         }
     });
 
-    // 3. Error Distribution (Doughnut Chart)
-    new Chart(document.getElementById('distChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Safe (<0.02)', 'Low Risk (0.02-0.04)', 'Medium (0.04-0.06)', 'High Risk (0.06-0.08)', 'Critical (>0.08)'],
-            datasets: [{
-                data: rawData.error_dist,
-                backgroundColor: [
-                    '#0bfb75', // green
-                    '#4facfe', // blue
-                    '#f6d365', // yellow
-                    '#fd7e14', // orange
-                    '#ff0844'  // red
-                ],
-                borderWidth: 2,
-                borderColor: '#14161e' // card background color match
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { boxWidth: 10, font: { size: 10 } }
-                }
-            }
-        }
-    });
+
     });
 </script>
 {% endblock %}
