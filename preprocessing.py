@@ -6,8 +6,8 @@ from tqdm import tqdm
 # ---------------------------
 # PATHS
 # ---------------------------
-INPUT_ROOT = r"D:\Project\dataset"
-OUTPUT_ROOT = r"D:\Project\aura-med\data"
+INPUT_ROOT = #Give your Input Folder 
+OUTPUT_ROOT = #Output folder
 
 IMAGE_SIZE = 224
 
