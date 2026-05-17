@@ -1,3 +1,4 @@
+# This script is used to split the Dataset into 80/20 train/test split. Just specify the SOURCE and DEST paths Below.
 import os
 import random
 import shutil
