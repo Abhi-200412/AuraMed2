@@ -10,7 +10,7 @@ from tqdm import tqdm
 # ---------------------------
 # CONFIG
 # ---------------------------
-DATA_DIR =  r"D:\Project\aura-med\data\train"
+DATA_DIR =  #Specify Training Folder Path
 BATCH_SIZE = 8
 EPOCHS = 80
 LR = 1e-4
