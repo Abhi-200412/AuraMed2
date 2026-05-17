@@ -26,7 +26,7 @@ from model import SBCAE
 # CONFIG
 # =========================================================
 
-DATA_DIR = "data/test"
+DATA_DIR = #Specify Test data Folder
 MODEL_PATH = "final_model.pth"
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
